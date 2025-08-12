@@ -15,7 +15,7 @@ creds = Credentials.from_service_account_info(
 )
 
 client = gspread.authorize(creds)
-SHEET_NAME = "ClientsDatabase"  # Change to your Google Sheet name
+SHEET_NAME = "CarPartsDatabase"  # Change to your Google Sheet name
 sheet = client.open(SHEET_NAME).sheet1
 
 data = sheet.get_all_records()
@@ -24,3 +24,4 @@ df = pd.DataFrame(data)
 st.title("Car Parts Manager")
 st.write("Current Client Data from Google Sheets:")
 st.dataframe(df)
+
