@@ -8,7 +8,7 @@ SCOPE = [
     "https://www.googleapis.com/auth/drive"
 ]
 
-# Cargar credenciales
+# Cargar credenciales desde secrets
 creds = Credentials.from_service_account_info(
     st.secrets["google_service_account"],
     scopes=SCOPE
@@ -16,15 +16,17 @@ creds = Credentials.from_service_account_info(
 
 client = gspread.authorize(creds)
 
-# Abrir la hoja por nombre
+# Abrir la hoja
 sheet_name = "CarPartsDatabase"
 spreadsheet = client.open(sheet_name)
 
-# Seleccionar la primera hoja de la spreadsheet
+# Tomar la primera pestaña
 worksheet = spreadsheet.get_worksheet(0)
 
-# Obtener todos los valores
+# Leer todos los datos
 data = worksheet.get_all_records()
 
-# Convertir a DataFrame
-df = pd.DataFrame(
+# Convertir a DataFrame y mostrarlo
+df = pd.DataFrame(data)
+st.title("📊 Car Parts Database")
+st.dataframe(df)
