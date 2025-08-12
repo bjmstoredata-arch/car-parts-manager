@@ -40,4 +40,4 @@ with st.form("add_part_form"):
         else:
             worksheet.append_row([part_name, quantity, price])
             st.success(f"✅ Pieza '{part_name}' agregada correctamente.")
-            st.experimental_rerun()
+            st.rerun()  # Nueva forma
