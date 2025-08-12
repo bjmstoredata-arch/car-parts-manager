@@ -3,7 +3,7 @@ import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 
-# --- Configuración de Google Sheets ---
+# --- Configuración Google Sheets ---
 SCOPE = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
@@ -27,6 +27,14 @@ st.title("🛠️ Car Parts Manager")
 st.subheader("📋 Lista de piezas")
 st.dataframe(df)
 
+# --- Inicializar valores de formulario si no existen ---
+if "part_name" not in st.session_state:
+    st.session_state.part_name = ""
+if "quantity" not in st.session_state:
+    st.session_state.quantity = 0
+if "price" not in st.session_state:
+    st.session_state.price = 0.0
+
 # --- Agregar nueva pieza ---
 st.subheader("➕ Agregar nueva pieza")
 with st.form("add_part_form"):
@@ -42,7 +50,7 @@ with st.form("add_part_form"):
             worksheet.append_row([part_name, quantity, price])
             st.success(f"✅ Pieza '{part_name}' agregada correctamente.")
 
-            # --- Limpiar campos ---
+            # Limpiar campos antes de recargar
             st.session_state.part_name = ""
             st.session_state.quantity = 0
             st.session_state.price = 0.0
