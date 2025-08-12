@@ -1,7 +1,12 @@
 import streamlit as st
+import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 
+# Nombre de la hoja en Google Sheets
+SHEET_NAME = "CarPartsDatabase"
+
+# Alcances necesarios
 SCOPE = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
@@ -13,31 +18,23 @@ creds = Credentials.from_service_account_info(
     scopes=SCOPE
 )
 
+# Autenticación con gspread
 client = gspread.authorize(creds)
 
-st.title("📄 Crear Google Sheet de prueba")
+try:
+    # Abrir la hoja
+    sheet = client.open(SHEET_NAME).sheet1
 
-# Botón para crear la hoja
-if st.button("Crear nueva hoja 'CarPartsDatabase'"):
-    sheet = client.create("CarPartsDatabase")
-    st.success(f"✅ Hoja creada: {sheet.url}")
-    
-    # Escribir datos de ejemplo
-    worksheet = sheet.get_worksheet(0)  # Primera pestaña
-    worksheet.update(
-        "A1",
-        [["Part Name", "Quantity", "Price"],
-         ["Brake Pad", 10, 25.50],
-         ["Oil Filter", 15, 8.99]]
-    )
-    
-    st.info("📊 Datos de ejemplo agregados.")
+    # Obtener todos los registros
+    data = sheet.get_all_records()
 
-# Mostrar lista de hojas accesibles
-st.subheader("Hojas accesibles por este service account:")
-files = client.list_spreadsheet_files()
-if files:
-    for f in files:
-        st.write(f"- {f['name']}: {f['url']}")
-else:
-    st.warning("No se encontraron hojas accesibles.")
+    # Convertir a DataFrame
+    df = pd.DataFrame(data)
+
+    st.title("Car Parts Manager")
+    st.subheader("Datos actuales desde Google Sheets")
+    st.dataframe(df)
+
+except gspread.SpreadsheetNotFound:
+    st.error(f"No se encontró la hoja '{SHEET_NAME}'. "
+             "Verifica que el service account tenga acceso como Editor.")
