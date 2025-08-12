@@ -1,12 +1,7 @@
 import streamlit as st
-import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 
-# Nombre de la hoja en Google Sheets
-SHEET_NAME = "CarPartsDatabase"
-
-# Alcances necesarios
 SCOPE = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
@@ -18,23 +13,19 @@ creds = Credentials.from_service_account_info(
     scopes=SCOPE
 )
 
-# Autenticación con gspread
+# Autenticación
 client = gspread.authorize(creds)
 
+st.title("Google Sheets Access Test")
+
+# Listar hojas disponibles para el service account
 try:
-    # Abrir la hoja
-    sheet = client.open(SHEET_NAME).sheet1
-
-    # Obtener todos los registros
-    data = sheet.get_all_records()
-
-    # Convertir a DataFrame
-    df = pd.DataFrame(data)
-
-    st.title("Car Parts Manager")
-    st.subheader("Datos actuales desde Google Sheets")
-    st.dataframe(df)
-
-except gspread.SpreadsheetNotFound:
-    st.error(f"No se encontró la hoja '{SHEET_NAME}'. "
-             "Verifica que el service account tenga acceso como Editor.")
+    files = client.list_spreadsheet_files()
+    if files:
+        st.write("Sheets the service account can access:")
+        for f in files:
+            st.write(f"📄 {f['name']} (ID: {f['id']})")
+    else:
+        st.warning("No spreadsheets found. Make sure the service account has access.")
+except Exception as e:
+    st.error(f"Error listing spreadsheets: {e}")
