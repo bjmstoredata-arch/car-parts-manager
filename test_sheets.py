@@ -1,4 +1,3 @@
-import streamlit as st
 import gspread
 from google.oauth2.service_account import Credentials
 
@@ -7,7 +6,7 @@ SCOPE = [
     "https://www.googleapis.com/auth/drive"
 ]
 
-# Cargar credenciales desde secrets
+# Cargar credenciales desde Streamlit secrets
 creds = Credentials.from_service_account_info(
     st.secrets["google_service_account"],
     scopes=SCOPE
@@ -15,9 +14,14 @@ creds = Credentials.from_service_account_info(
 
 client = gspread.authorize(creds)
 
-# Listar hojas que puede ver el service account
-st.title("Google Sheets Access Test")
-st.write("Sheets the service account can access:")
+# Crear una nueva hoja
+sheet = client.create("CarPartsDatabase")
 
-for spreadsheet in client.openall():
-    st.write("-", spreadsheet.title)
+# Compartirla con el mismo service account (no siempre es necesario)
+sheet.share(
+    st.secrets["google_service_account"]["client_email"],
+    perm_type='user',
+    role='owner'
+)
+
+print(f"Hoja creada: {sheet.url}")
