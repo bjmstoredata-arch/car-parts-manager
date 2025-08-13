@@ -7,10 +7,10 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 # 🔐 Google Sheets setup using Streamlit Secrets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-json_key = json.dumps(st.secrets["gcp"])
+json_key = json.dumps(dict(st.secrets["gcp"]))  # ✅ Convert AttrDict to dict
 creds = ServiceAccountCredentials.from_json_keyfile_name(StringIO(json_key), scope)
 client = gspread.authorize(creds)
-sheet = client.open("CarPartsDatabase").worksheet("VinRecords")  # Replace with your actual sheet name
+sheet = client.open("CarPartsDatabase").worksheet("VinRecords")  # ✅ Your actual sheet name
 
 # 📥 Load data from sheet
 def load_data():
