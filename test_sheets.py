@@ -5,7 +5,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 # 🔐 Google Sheets setup
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("your_credentials.json", scope)
+creds = ServiceAccountCredentials.from_json_keyfile_name("steel-shine-468815-s3-f663e899ceff.json", scope)
 client = gspread.authorize(creds)
 sheet = client.open("YourSheetName").worksheet("VinRecords")  # Replace with your actual sheet name
 
@@ -62,3 +62,4 @@ if "vin_saved" in st.session_state:
             )
             st.success("✅ Vehicle details saved.")
             del st.session_state["vin_saved"]
+
