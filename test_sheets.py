@@ -25,26 +25,25 @@ def normalize_and_rename_columns(df: pd.DataFrame) -> pd.DataFrame:
         "engine": "Engine", "code": "Code", "transmission": "Transmission"
     }
     rename_map = {c: syn[c.lower()] for c in df.columns if c.lower() in syn}
-    df = df.rename(columns=rename_map)
-    return df
+    return df.rename(columns=rename_map)
 
 def get_row_index_for_df_index(df_index: int) -> int:
-    return int(df_index) + 2
+    return int(df_index) + 2  # +1 for header, +1 for 1-based indexing
 
-# --- Conexión Google Sheets ---
+# --- Connect to Google Sheets ---
 try:
     creds = Credentials.from_service_account_info(
         st.secrets["google_service_account"],
         scopes=SCOPE
     )
     client = gspread.authorize(creds)
-    SHEET_NAME = "CarPartsDatabase"
+    SHEET_NAME = "CarPartsDatabase"  # Change if needed
     worksheet = client.open(SHEET_NAME).sheet1
 except Exception as e:
     st.error(f"❌ Could not connect to Google Sheets: {e}")
     st.stop()
 
-# --- Cargar datos ---
+# --- Load Data ---
 try:
     data = worksheet.get_all_records()
     df_all = normalize_and_rename_columns(pd.DataFrame(data))
@@ -52,14 +51,14 @@ except Exception as e:
     st.error(f"❌ Error loading data: {e}")
     st.stop()
 
-st.title("📑 Cliente Info")
+st.title("📑 Client Info")
 
 # --- Tabs ---
 tab_add, tab_edit = st.tabs(["➕ Add Client", "✏️ Edit Client"])
 
 with tab_add:
-    st.subheader("Agregar nuevo cliente")
-    with st.form("add_record_form"):
+    st.subheader("Add New Client")
+    with st.form("add_client_form"):
         client_name = st.text_input("Client Name")
         phone = st.text_input("Phone")
         vin_no = st.text_input("Vin No")
@@ -69,7 +68,7 @@ with tab_add:
         engine = st.text_input("Engine")
         code = st.text_input("Code")
         transmission = st.text_input("Transmission")
-        submit_add = st.form_submit_button("Add")
+        submit_add = st.form_submit_button("Add Client")
 
     if submit_add:
         if phone.strip() == "":
@@ -85,17 +84,17 @@ with tab_add:
                 st.success(f"✅ Record saved for phone: {phone}")
                 st.rerun()
             except Exception as e:
-                st.error(f"❌ Error adding record: {e}")
+                st.error(f"❌ Error adding client: {e}")
 
 with tab_edit:
-    st.subheader("Buscar y editar cliente")
+    st.subheader("Search and Edit Client")
     if df_all.empty:
-        st.info("No records to edit yet.")
+        st.info("No records to edit.")
     elif "Phone" not in df_all.columns:
-        st.error("❌ 'Phone' column not found. Please check headers.")
+        st.error("❌ 'Phone' column not found. Please check sheet headers.")
     else:
         phone_options = sorted(df_all["Phone"].astype(str).dropna().unique().tolist())
-        selected_phone = st.selectbox("Select client by phone", [""] + phone_options)
+        selected_phone = st.selectbox("Select by phone", [""] + phone_options)
 
         if selected_phone:
             matches = df_all[df_all["Phone"].astype(str) == str(selected_phone)]
@@ -103,7 +102,7 @@ with tab_edit:
                 selected_df = matches.iloc[0]
                 selected_df_index = matches.index[0]
 
-                with st.form("edit_form"):
+                with st.form("edit_client_form"):
                     client_name_e = st.text_input("Client Name", str(selected_df.get("Client Name", "")))
                     phone_e = st.text_input("Phone", str(selected_df.get("Phone", "")))
                     vin_no_e = st.text_input("Vin No", str(selected_df.get("Vin No", "")))
@@ -128,7 +127,7 @@ with tab_edit:
                                 prod_yr_e, body_e, engine_e, code_e, transmission_e
                             ]
                             worksheet.update(f"A{row_index}:J{row_index}", [values])
-                            st.success("✅ Client record updated successfully.")
+                            st.success("✅ Client updated successfully.")
                             st.rerun()
                         except Exception as e:
-                            st.error(f"❌ Error updating record: {e}")
+                            st.error(f"❌ Error updating client: {e}")
