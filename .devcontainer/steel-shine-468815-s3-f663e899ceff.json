@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "steel-shine-468815-s3",
+  "private_key_id": "f663e899ceff598af451ce4e91a31472a9830328",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDP0UClES3dM/ah\nmiy3A/cxrzuo53FUJ0KJOqtLBZrHml802EnkRmQ5+Zfh7obzqFqtUTiMAeDKxXJk\nOWXA/60++weG+oFLnQOI1nXzhK/+pPi9wq86fomu9pcKeZO2FQGXXOpF70DL9sZ7\nX7bCgGiCcj5IzIQ1rJUqyUa5dcSNCnDNBMO/2LrqpkmwGOJik3bKTqHkqqD59lEe\nDc223wgqTo7Hrf/De5J6cxiCQocmnuarcoKQbzYHiXegNXTw13ciQR2BL+GlAULa\nwBPl0FHdF54+Y2F8GM1uN2IW0iZ/BAv/gMXGbC6WSEuLWgSexneUcweNG0AkH+cE\nfSJv7E+zAgMBAAECggEAC0HMfKSHlXnhHDPbxDYkx740Pxv6WZKe2gwhhzjQf4tv\nKM+mgQUHHNTWU1i2WrB96PGDXKIlaRZ08dTiHCg9XDIA4GDlbBEfReRIE17WobaR\n+sV29HYyQxX8bIbVZ4GPyoEv94XUPrgpXDl9DuAhyR8jHJJnfvjQQ7cPa7BjazhS\ndTYTggZkKlBGVpF4jwVMEufLmYBfrlQEtDK256MwI3ZvcjWThC8svlHIUf/tvIw/\nWWg8GnkrCis6rpQCdeoFwUiITyV7bmywW0DTmBNDjlOJJmwwYPpKXtPBIvBvLOjR\n8BM7wqIW/5FyO+ukEEQADfWJyQkkG5XhPL7Hv+ZrEQKBgQD99SvQF4+xWykDxiQQ\nIQ0mEbtfDNA5GKXrZT9+bxGTrZF8B2Af5XMgsB/9qbn4/eT5suVqE71kr0A7Y90f\nDhtNnQkyWhcHnYr7E0gYZbXUTTmmBCk7BNVt7xifCJiB8K+4IjcBUn8+8Fe32f0e\nfKSa0QIls9lpoEOxtQQyuRobFQKBgQDRfRdZeSGBgVLS586FNEQuYXj5xYnXv5ZF\nsDG+4rGivJbJugdeOdrNaO9BObkto1GofR/O4Y+G+O8IeQOZrVY3/jPo3kdAJb2d\nmPFb7BD/ieAGzBYuK38hHFEZZYMwgHvtsDSUALNFxoCsHNHd61JxdnQ3w/0/mlw4\nlSHJ4MdRpwKBgQCYJS0Fc0gsCiBNWYS7gQGeoBrwO/33ZvPoTfU3KxWNsvupIcYN\n9en+WGYiE3AOYxWuHuZgocjirDfAHPkZpNroqb8bwmtvrYvZFdkofK7trQJvmqiU\n6jVvskG+7Who2Kh9mUn46dLAAz+aLuf9PtFiyvsNWW1UYaaMrZUBSnIAbQKBgQCD\n1G6PNbUqJFIUux+xn7SQY3KX7AHUrZJJhJmpgEs9F+TkSZc9arcQsMpvh33LBI3s\ns+ECddu2mo0CDfWADh7F2cic8NRxv85VkNvCdwozZXZ/kIscvu6fzYwTqVgne5OB\nfnN3+ADZFhP/O5uuRdp54Is+VK3YCrGiQecjfbqw3QKBgQCswdNbVY3COlcGdOh7\nklcHngtycjZvPSbNY5SRZIQ+Wtk5ZbCMYyb9je3KtCB1UGjH0NIUbmJ8m1sAXTI/\nvvF9zEJnou4FZJ3J5aTeeN2/kx83EpivRw64ghnC0YNh0OzmjMayQJv4FGrbgYDj\nPbYOYVaNzTgpga+JbWILqrSpmw==\n-----END PRIVATE KEY-----\n",
+  "client_email": "client-manager-sa@steel-shine-468815-s3.iam.gserviceaccount.com",
+  "client_id": "105715655405326282759",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/client-manager-sa%40steel-shine-468815-s3.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
