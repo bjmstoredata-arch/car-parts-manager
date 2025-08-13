@@ -40,3 +40,4 @@ if not df.empty:
         st.dataframe(df)
     else:
         st.info("No parts found in the database.")
+
