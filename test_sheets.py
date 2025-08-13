@@ -55,10 +55,6 @@ except Exception as e:
     st.error(f"❌ Error loading data: {e}")
     st.stop()
 
-# --- Check headers ---
-if list(worksheet.row_values(1)[:len(HEADERS)]) != HEADERS:
-    st.info("ℹ️ Make sure your sheet headers (row 1) are exactly: " + " | ".join(HEADERS))
-
 st.title("📑 Client Info")
 
 # --- Session state for VIN step ---
@@ -202,3 +198,4 @@ with tab_edit:
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Error saving VIN: {e}")
+
