@@ -36,7 +36,7 @@ if not df.empty:
     #fomat price colum if it exist
     if "Price" in df.columns:
             df["Price"] = pd.to_numeric(df["Price"], errors="coerce").fillna(0.0)
-            df["Price"] = df["Price"].apply(lambda x) f"${x:.2f}")
+            df["Price"] = df["Price"].apply(lambda x: f"${x:.2f}")
         st.dataframe(df)
     else:
         st.info("No parts found in the database.")
