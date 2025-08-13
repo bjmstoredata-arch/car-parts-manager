@@ -36,7 +36,12 @@ st.title("🛠️ Car Parts Manager")
 st.subheader("🔍 Search Parts")
 search_term = st.text_input("Enter part name to search")
 if search_term:
-    df = df[df["Part Name"].str.contains(search_term, case=False, na=False)]
+    if "Part Name" in df.columns:
+        # Ensure strings before filtering
+        df["Part Name"] = df["Part Name"].astype(str).fillna("")
+        df = df[df["Part Name"].str.contains(search_term, case=False, na=False)]
+    else:
+        st.warning("⚠️ 'Part Name' column not found in the data.")
 
 # --- Format Price Column ---
 if not df.empty:
