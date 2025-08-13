@@ -26,7 +26,7 @@ def normalize_and_rename_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df.rename(columns=rename_map)
 
 def get_row_index_for_df_index(df_index: int) -> int:
-    return int(df_index) + 2
+    return int(df_index) + 2  # 1 for headers + 1 for 1-based index
 
 # --- Connect to Google Sheets ---
 try:
@@ -35,7 +35,7 @@ try:
         scopes=SCOPE
     )
     client = gspread.authorize(creds)
-    SHEET_NAME = "CarPartsDatabase"  # Change if needed
+    SHEET_NAME = "CarPartsDatabase"  # change if needed
     worksheet = client.open(SHEET_NAME).sheet1
 except Exception as e:
     st.error(f"❌ Could not connect to Google Sheets: {e}")
@@ -56,22 +56,6 @@ tab_add, tab_edit = st.tabs(["➕ Add Client", "✏️ Edit Client"])
 
 with tab_add:
     st.subheader("Add New Client")
-
-    # Search bar before adding, so you can check if client exists
-    st.markdown("**Search Clients** (by name or phone)")
-    search_term = st.text_input("Enter name or phone to search")
-    df_view = df_all.copy()
-    if search_term:
-        if "Client Name" in df_view.columns and "Phone" in df_view.columns:
-            df_view["Client Name"] = df_view["Client Name"].astype(str).fillna("")
-            df_view["Phone"] = df_view["Phone"].astype(str).fillna("")
-            df_view = df_view[
-                df_view["Client Name"].str.contains(search_term, case=False, na=False) |
-                df_view["Phone"].str.contains(search_term, case=False, na=False)
-            ]
-        st.dataframe(df_view if not df_view.empty else pd.DataFrame())
-
-    # Add new client form
     with st.form("add_client_form"):
         client_name = st.text_input("Client Name")
         phone = st.text_input("Phone")
@@ -90,48 +74,35 @@ with tab_add:
                 st.error(f"❌ Error adding client: {e}")
 
 with tab_edit:
-    st.subheader("Search and Edit Client")
+    st.subheader("Select and Edit Client")
     if df_all.empty:
         st.info("No records to edit.")
-    elif not {"Phone", "Client Name"}.issubset(df_all.columns):
-        st.error("❌ 'Phone' or 'Client Name' column not found. Please check sheet headers.")
+    elif "Phone" not in df_all.columns:
+        st.error("❌ 'Phone' column not found. Please check your sheet headers.")
     else:
-        search_edit = st.text_input("Search by name or phone")
-        df_edit = df_all.copy()
-        if search_edit:
-            df_edit["Client Name"] = df_edit["Client Name"].astype(str).fillna("")
-            df_edit["Phone"] = df_edit["Phone"].astype(str).fillna("")
-            df_edit = df_edit[
-                df_edit["Client Name"].str.contains(search_edit, case=False, na=False) |
-                df_edit["Phone"].str.contains(search_edit, case=False, na=False)
-            ]
+        phone_options = sorted(df_all["Phone"].astype(str).dropna().unique().tolist())
+        selected_phone = st.selectbox("Select client by phone", [""] + phone_options)
 
-        if not df_edit.empty:
-            st.dataframe(df_edit)
-            phone_options = df_edit["Phone"].astype(str).dropna().unique().tolist()
-            selected_phone = st.selectbox("Select client by phone", [""] + sorted(phone_options))
+        if selected_phone:
+            match = df_all[df_all["Phone"].astype(str) == str(selected_phone)]
+            if not match.empty:
+                selected_df = match.iloc[0]
+                selected_idx = match.index[0]
 
-            if selected_phone:
-                match = df_all[df_all["Phone"].astype(str) == selected_phone]
-                if not match.empty:
-                    selected_df = match.iloc[0]
-                    selected_idx = match.index[0]
-                    with st.form("edit_client_form"):
-                        client_name_e = st.text_input("Client Name", selected_df.get("Client Name", ""))
-                        phone_e = st.text_input("Phone", selected_df.get("Phone", ""))
-                        save_changes = st.form_submit_button("Save Changes")
+                with st.form("edit_client_form"):
+                    client_name_e = st.text_input("Client Name", selected_df.get("Client Name", ""))
+                    phone_e = st.text_input("Phone", selected_df.get("Phone", ""))
+                    save_changes = st.form_submit_button("Save Changes")
 
-                    if save_changes:
-                        if phone_e.strip() == "":
-                            st.error("⚠️ Phone number is required.")
-                        else:
-                            try:
-                                row_index = get_row_index_for_df_index(selected_idx)
-                                date_keep = str(selected_df.get("Date", ""))
-                                worksheet.update(f"A{row_index}:C{row_index}", [[date_keep, client_name_e, phone_e]])
-                                st.success("✅ Client updated successfully.")
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"❌ Error updating client: {e}")
-        else:
-            st.info("No matching records found.")
+                if save_changes:
+                    if phone_e.strip() == "":
+                        st.error("⚠️ Phone number is required.")
+                    else:
+                        try:
+                            row_index = get_row_index_for_df_index(selected_idx)
+                            date_keep = str(selected_df.get("Date", ""))
+                            worksheet.update(f"A{row_index}:C{row_index}", [[date_keep, client_name_e, phone_e]])
+                            st.success("✅ Client updated successfully.")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Error updating client: {e}")
