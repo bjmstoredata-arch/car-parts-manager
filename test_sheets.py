@@ -86,8 +86,9 @@ if submit:
     else:
         try:
             date_str = datetime.now().strftime("%d/%m/%Y")  # Auto date
+            vin_no_upper = vin_no.strip().upper()  # Force uppercase VIN
             worksheet.append_row([
-                date_str, client_name, phone, vin_no, model,
+                date_str, client_name, phone, vin_no_upper, model,
                 prod_yr, body, engine, code, transmission
             ])
             st.success(f"✅ Record for '{client_name}' added successfully.")
@@ -97,3 +98,5 @@ if submit:
             st.rerun()
         except Exception as e:
             st.error(f"❌ Error adding record: {e}")
+
+
