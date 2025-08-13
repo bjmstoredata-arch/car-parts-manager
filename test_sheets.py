@@ -97,13 +97,6 @@ st.session_state.setdefault("force_vins_tab", False)
 tabs = st.tabs(["➕ Add Client", "✏️ Edit Client", "🚗 VINs"])
 tab_add, tab_edit, tab_vins = tabs[0], tabs[1], tabs[2]
 
-# If we need to force-switch to VINs tab, show a subtle cue (Streamlit can't programmatically switch tabs,
-# so we guide the user by preselecting the client and showing the VIN form immediately).
-if st.session_state.force_vins_tab:
-    with tab_vins:
-        st.info(f"Next step: Add VINs for client phone {st.session_state.selected_phone}")
-    # Do not reset here; let the VIN tab render with the selected phone
-
 # ----------------------------------------------------------------------------
 # Add Client tab
 # ----------------------------------------------------------------------------
@@ -134,7 +127,11 @@ with tab_add:
 with tab_edit:
     st.subheader("Edit client")
     phone_list = sorted(df_clients["Phone"].dropna().astype(str).unique().tolist()) if not df_clients.empty else []
-    selected_phone_edit = st.selectbox("Select client by phone", [""] + phone_list)
+    selected_phone_edit = st.selectbox(
+        "Select client by phone",
+        [""] + phone_list,
+        key="edit_client_select"
+    )
 
     if selected_phone_edit:
         match = df_clients[df_clients["Phone"].astype(str) == selected_phone_edit]
@@ -185,7 +182,8 @@ with tab_vins:
     selected_phone_vins = st.selectbox(
         "Select client by phone",
         [""] + phone_choices,
-        index=default_index
+        index=default_index,
+        key="vin_client_select"
     )
 
     if selected_phone_vins:
