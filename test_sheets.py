@@ -3,7 +3,6 @@ import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
-import altair as alt
 
 # --- Google Sheets Configuration ---
 SCOPE = [
@@ -48,15 +47,6 @@ if not df.empty:
     st.dataframe(df)
 else:
     st.info("No parts found in the database.")
-
-# --- Quantity Chart ---
-if not df.empty and "Quantity" in df.columns and "Part Name" in df.columns:
-    st.subheader("📊 Quantity Overview")
-    chart = alt.Chart(df).mark_bar().encode(
-        x="Part Name",
-        y="Quantity"
-    )
-    st.altair_chart(chart, use_container_width=True)
 
 # --- Initialize session state for form fields ---
 for field, default in {
