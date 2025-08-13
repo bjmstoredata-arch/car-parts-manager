@@ -81,22 +81,20 @@ with st.form("add_record_form"):
     submit = st.form_submit_button("Add")
 
 if submit:
-    if phone.strip() == "" or client_name.strip() == "":
-        st.error("⚠️ Client name and phone number are required.")
+    if phone.strip() == "":
+        st.error("⚠️ Phone number is required.")
     else:
         try:
             date_str = datetime.now().strftime("%d/%m/%Y")  # Auto date
-            vin_no_upper = vin_no.strip().upper()  # Force uppercase VIN
+            vin_no_upper = vin_no.strip().upper() if vin_no else ""
             worksheet.append_row([
                 date_str, client_name, phone, vin_no_upper, model,
                 prod_yr, body, engine, code, transmission
             ])
-            st.success(f"✅ Record for '{client_name}' added successfully.")
+            st.success(f"✅ Record added successfully for phone: {phone}")
             # Reset form fields
             for field in form_defaults.keys():
                 st.session_state[field] = ""
             st.rerun()
         except Exception as e:
             st.error(f"❌ Error adding record: {e}")
-
-
