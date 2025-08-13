@@ -4,28 +4,28 @@ import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
 
-# --- Expected Google Sheet headers (in this order) ---
+# --- Expected Google Sheet headers ---
 HEADERS = ["Date", "Client Name", "Phone", "Vin No"]
 
-# --- Google Sheets configuration ---
+# --- Google Sheets config ---
 SCOPE = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
 ]
 
 def get_row_index_for_df_index(df_index: int) -> int:
-    # +1 for header row, +1 for 1-based indexing
+    """Convert DataFrame index to 1-based row number in Google Sheets (incl. header row)."""
     return int(df_index) + 2
 
 def load_dataframe(worksheet) -> pd.DataFrame:
+    """Load all records from the sheet into a DataFrame, strip header whitespace."""
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
-    # Normalize header whitespace just in case
     df.columns = [c.strip() for c in df.columns]
     return df
 
 def find_last_row_index_by_phone(worksheet, phone: str) -> int | None:
-    """Find the last matching row index (1-based) in the sheet for a given phone."""
+    """Find the last matching row index (1-based) for a given phone."""
     df = load_dataframe(worksheet)
     if "Phone" not in df.columns:
         return None
@@ -48,30 +48,33 @@ except Exception as e:
     st.error(f"❌ Could not connect to Google Sheets: {e}")
     st.stop()
 
-# --- Load data safely ---
+# --- Load data ---
 try:
     df_all = load_dataframe(worksheet)
 except Exception as e:
     st.error(f"❌ Error loading data: {e}")
     st.stop()
 
-# Gentle heads-up if headers aren't as expected
+# --- Check headers ---
 if list(worksheet.row_values(1)[:len(HEADERS)]) != HEADERS:
     st.info("ℹ️ Make sure your sheet headers (row 1) are exactly: " + " | ".join(HEADERS))
 
 st.title("📑 Client Info")
 
-# Session flags for VIN step
-if "pending_vin_phone" not in st.session_state:
-    st.session_state.pending_vin_phone = None
-if "pending_vin_row" not in st.session_state:
-    st.session_state.pending_vin_row = None
+# --- Session state for VIN step ---
+st.session_state.setdefault("pending_vin_phone", None)
+st.session_state.setdefault("pending_vin_row", None)
 
 # --- Tabs ---
 tab_add, tab_edit = st.tabs(["➕ Add Client", "✏️ Edit Client"])
 
+# =========================================================
+# ADD CLIENT TAB
+# =========================================================
 with tab_add:
     st.subheader("Add New Client")
+    submit_add = False  # define variable to avoid NameError
+
     with st.form("add_client_form"):
         client_name = st.text_input("Client Name")
         phone = st.text_input("Phone")
@@ -82,20 +85,17 @@ with tab_add:
             st.error("⚠️ Phone number is required.")
         else:
             try:
-                # Append in the exact header order: Date, Client Name, Phone, Vin No
                 date_str = datetime.now().strftime("%d/%m/%Y")
+                # Append empty VIN for now
                 worksheet.append_row([date_str, client_name, phone, ""])
-                # Prepare VIN Next step
                 st.session_state.pending_vin_phone = phone
-                # Find the row we just appended (last match for this phone)
-                row_index = find_last_row_index_by_phone(worksheet, phone)
-                st.session_state.pending_vin_row = row_index
+                st.session_state.pending_vin_row = find_last_row_index_by_phone(worksheet, phone)
                 st.success(f"✅ Client saved for phone: {phone}. Next: add VIN below.")
             except Exception as e:
                 st.error(f"❌ Error adding client: {e}")
 
-    # VIN Next step (appears after adding)
-    if st.session_state.pending_vin_phone:
+    # --- VIN step after adding ---
+    if st.session_state.pending_vin_phone and not submit_add:
         st.divider()
         st.subheader("Next: Add VIN")
         st.caption(f"For client phone: {st.session_state.pending_vin_phone}")
@@ -108,14 +108,12 @@ with tab_add:
             else:
                 try:
                     target_row = st.session_state.pending_vin_row
-                    # Fallback: look up row by phone if not set
                     if not target_row:
                         target_row = find_last_row_index_by_phone(worksheet, st.session_state.pending_vin_phone)
                     if not target_row:
-                        st.error("❌ Could not locate the just-added record to save VIN.")
+                        st.error("❌ Could not locate the record to save VIN.")
                     else:
-                        # Vin No is column D
-                        worksheet.update(f"D{target_row}", vin_no.strip().upper())
+                        worksheet.update(values=[[vin_no.strip().upper()]], range_name=f"D{target_row}")
                         st.success("✅ VIN saved successfully.")
                         st.session_state.pending_vin_phone = None
                         st.session_state.pending_vin_row = None
@@ -123,14 +121,16 @@ with tab_add:
                 except Exception as e:
                     st.error(f"❌ Error saving VIN: {e}")
 
+# =========================================================
+# EDIT CLIENT TAB
+# =========================================================
 with tab_edit:
     st.subheader("Select and Edit Client")
     if df_all.empty:
         st.info("No records to edit.")
     elif not {"Client Name", "Phone"}.issubset(df_all.columns):
-        st.error("❌ 'Client Name' or 'Phone' column not found. Please check sheet headers.")
+        st.error("❌ 'Client Name' or 'Phone' column not found.")
     else:
-        # Phone dropdown
         phone_options = sorted(df_all["Phone"].astype(str).dropna().unique().tolist())
         selected_phone = st.selectbox("Select client by phone", [""] + phone_options)
 
@@ -155,48 +155,50 @@ with tab_edit:
                     try:
                         row_index = get_row_index_for_df_index(selected_idx)
                         date_keep = str(selected_df.get("Date", ""))
-                        # Preserve current VIN from sheet if present
                         current_vin = str(selected_df.get("Vin No", "")) if "Vin No" in selected_df else ""
-                        worksheet.update(f"A{row_index}:D{row_index}", [[date_keep, client_name_e, phone_e, current_vin]])
-                        # Prepare VIN Next step after edit
+                        worksheet.update(
+                            values=[[date_keep, client_name_e, phone_e, current_vin]],
+                            range_name=f"A{row_index}:D{row_index}"
+                        )
                         st.session_state.pending_vin_phone = phone_e
                         st.session_state.pending_vin_row = row_index
-                        st.success("✅ Client updated. Next: update VIN below.")
-                        st.experimental_rerun()
+                        st.success("✅ Client updated. Next: add/update VIN below.")
+                        st.rerun()
                     except Exception as e:
                         st.error(f"❌ Error updating client: {e}")
 
-        # VIN Next step (appears after editing)
-        if st.session_state.pending_vin_phone and st.session_state.pending_vin_row:
-            st.divider()
-            st.subheader("Next: Add/Update VIN")
-            st.caption(f"For client phone: {st.session_state.pending_vin_phone}")
-            # Pre-fill with existing VIN if any
-            try:
-                df_all_refresh = load_dataframe(worksheet)
-                if {"Phone", "Vin No"}.issubset(df_all_refresh.columns):
-                    row_now = df_all_refresh[df_all_refresh["Phone"].astype(str) == str(st.session_state.pending_vin_phone)]
-                    existing_vin = ""
-                    if not row_now.empty:
-                        existing_vin = str(row_now.iloc[-1].get("Vin No", "") or "")
-                else:
-                    existing_vin = ""
-            except:
-                existing_vin = ""
+    # --- VIN step after editing ---
+    if st.session_state.pending_vin_phone and st.session_state.pending_vin_row and not submit_add:
+        st.divider()
+        st.subheader("Next: Add/Update VIN")
+        st.caption(f"For client phone: {st.session_state.pending_vin_phone}")
 
-            with st.form("vin_after_edit_form"):
-                vin_no_e = st.text_input("VIN No", value=existing_vin)
-                save_vin_e = st.form_submit_button("Save VIN")
-            if save_vin_e:
-                if vin_no_e.strip() == "":
-                    st.error("⚠️ VIN cannot be empty.")
-                else:
-                    try:
-                        target_row = st.session_state.pending_vin_row
-                        worksheet.update(f"D{target_row}", vin_no_e.strip().upper())
-                        st.success("✅ VIN saved successfully.")
-                        st.session_state.pending_vin_phone = None
-                        st.session_state.pending_vin_row = None
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"❌ Error saving VIN: {e}")
+        # Pre-fill VIN if available
+        try:
+            df_refresh = load_dataframe(worksheet)
+            existing_vin = ""
+            if {"Phone", "Vin No"}.issubset(df_refresh.columns):
+                row_match = df_refresh[df_refresh["Phone"].astype(str) == str(st.session_state.pending_vin_phone)]
+                if not row_match.empty:
+                    existing_vin = str(row_match.iloc[-1].get("Vin No", "") or "")
+        except:
+            existing_vin = ""
+
+        with st.form("vin_after_edit_form"):
+            vin_no_e = st.text_input("VIN No", value=existing_vin)
+            save_vin_e = st.form_submit_button("Save VIN")
+        if save_vin_e:
+            if vin_no_e.strip() == "":
+                st.error("⚠️ VIN cannot be empty.")
+            else:
+                try:
+                    worksheet.update(
+                        values=[[vin_no_e.strip().upper()]],
+                        range_name=f"D{st.session_state.pending_vin_row}"
+                    )
+                    st.success("✅ VIN saved successfully.")
+                    st.session_state.pending_vin_phone = None
+                    st.session_state.pending_vin_row = None
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Error saving VIN: {e}")
