@@ -80,7 +80,11 @@ if submit:
         st.error("⚠️ Phone number is required.")
     else:
         try:
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # Before: full date + time
+# timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+# After: day/month/year
+            timestamp = datetime.now().strftime("%d/%m/%Y")
             worksheet.append_row([timestamp, part_name, quantity, price, phone_number])
             st.success(f"✅ Part '{part_name}' added successfully.")
             # Reset form fields
@@ -91,3 +95,4 @@ if submit:
             st.rerun()
         except Exception as e:
             st.error(f"❌ Error adding part: {e}")
+
