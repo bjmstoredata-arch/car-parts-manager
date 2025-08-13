@@ -16,7 +16,7 @@ try:
         scopes=SCOPE
     )
     client = gspread.authorize(creds)
-    SHEET_NAME = "CarPartsDatabase"  # Change if needed
+    SHEET_NAME = "CarPartsDatabase"
     worksheet = client.open(SHEET_NAME).sheet1
 except Exception as e:
     st.error(f"❌ Could not connect to Google Sheets: {e}")
@@ -30,7 +30,6 @@ except Exception as e:
     st.error(f"❌ Error loading data: {e}")
     st.stop()
 
-# Title
 st.title("📑 Cliente Info")
 
 # --- Search by Phone ---
@@ -50,34 +49,18 @@ if not df.empty:
 else:
     st.info("No matching records found.")
 
-# --- Initialize form state ---
-form_defaults = {
-    "client_name": "",
-    "phone": "",
-    "vin_no": "",
-    "model": "",
-    "prod_yr": "",
-    "body": "",
-    "engine": "",
-    "code": "",
-    "transmission": ""
-}
-for field, default in form_defaults.items():
-    if field not in st.session_state:
-        st.session_state[field] = default
-
 # --- Add a new record ---
 st.subheader("➕ Add a New Record")
 with st.form("add_record_form"):
-    client_name = st.text_input("Client Name", key="client_name")
-    phone = st.text_input("Phone", key="phone")
-    vin_no = st.text_input("Vin No", key="vin_no")
-    model = st.text_input("Model", key="model")
-    prod_yr = st.text_input("Prod. Yr", key="prod_yr")
-    body = st.text_input("Body", key="body")
-    engine = st.text_input("Engine", key="engine")
-    code = st.text_input("Code", key="code")
-    transmission = st.text_input("Transmission", key="transmission")
+    client_name = st.text_input("Client Name")
+    phone = st.text_input("Phone")
+    vin_no = st.text_input("Vin No")
+    model = st.text_input("Model")
+    prod_yr = st.text_input("Prod. Yr")
+    body = st.text_input("Body")
+    engine = st.text_input("Engine")
+    code = st.text_input("Code")
+    transmission = st.text_input("Transmission")
     submit = st.form_submit_button("Add")
 
 if submit:
@@ -85,16 +68,47 @@ if submit:
         st.error("⚠️ Phone number is required.")
     else:
         try:
-            date_str = datetime.now().strftime("%d/%m/%Y")  # Auto date
+            date_str = datetime.now().strftime("%d/%m/%Y")
             vin_no_upper = vin_no.strip().upper() if vin_no else ""
             worksheet.append_row([
                 date_str, client_name, phone, vin_no_upper, model,
                 prod_yr, body, engine, code, transmission
             ])
-            st.success(f"✅ Record added successfully for phone: {phone}")
-            # Reset form fields
-            for field in form_defaults.keys():
-                st.session_state[field] = ""
+            st.success(f"✅ Record saved for phone: {phone}")
             st.rerun()
         except Exception as e:
             st.error(f"❌ Error adding record: {e}")
+
+# --- Edit an existing record ---
+st.subheader("✏️ Edit Client")
+if not df.empty:
+    phones = df["Phone"].dropna().unique().tolist()
+    selected_phone = st.selectbox("Select client by phone", [""] + phones)
+
+    if selected_phone:
+        row_index = df.index[df["Phone"] == selected_phone][0] + 2  # +2 because gspread rows start at 1 and have headers
+        record = df[df["Phone"] == selected_phone].iloc[0]
+
+        with st.form("edit_form"):
+            client_name_e = st.text_input("Client Name", record["Client Name"])
+            phone_e = st.text_input("Phone", record["Phone"])
+            vin_no_e = st.text_input("Vin No", record["Vin No"])
+            model_e = st.text_input("Model", record["Model"])
+            prod_yr_e = st.text_input("Prod. Yr", record["Prod. Yr"])
+            body_e = st.text_input("Body", record["Body"])
+            engine_e = st.text_input("Engine", record["Engine"])
+            code_e = st.text_input("Code", record["Code"])
+            transmission_e = st.text_input("Transmission", record["Transmission"])
+            save_changes = st.form_submit_button("Save Changes")
+
+        if save_changes:
+            try:
+                vin_no_e = vin_no_e.strip().upper() if vin_no_e else ""
+                worksheet.update(f"A{row_index}:J{row_index}", [[
+                    record["Date"], client_name_e, phone_e, vin_no_e,
+                    model_e, prod_yr_e, body_e, engine_e, code_e, transmission_e
+                ]])
+                st.success("✅ Client record updated successfully.")
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Error updating record: {e}")
