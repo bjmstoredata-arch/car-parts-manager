@@ -36,7 +36,7 @@ try:
     )
     client = gspread.authorize(creds)
     SHEET_NAME = "CarPartsDatabase"  # change if needed
-    worksheet = client.open(SHEET_NAME).sheet1
+    worksheet = client.open(SHEET_NAME).Clients
 except Exception as e:
     st.error(f"❌ Could not connect to Google Sheets: {e}")
     st.stop()
@@ -106,3 +106,4 @@ with tab_edit:
                             st.rerun()
                         except Exception as e:
                             st.error(f"❌ Error updating client: {e}")
+
