@@ -14,7 +14,7 @@ SCOPE = [
 
 CLIENT_HEADERS = ["Date", "Client Name", "Phone"]
 VIN_HEADERS = ["Phone", "VIN No", "Date Added"]
-SPREADSHEET_NAME = "CarPartsDatabase"  # change if needed
+SPREADSHEET_NAME = "CarPartsDatabase"
 CLIENT_SHEET_NAME = "Clients"
 VIN_SHEET_NAME = "VinRecords"
 
@@ -38,7 +38,6 @@ def load_df(sheet) -> pd.DataFrame:
     return df
 
 def ensure_headers(sheet, expected_headers):
-    # Create headers if the sheet is empty
     values = sheet.get_all_values()
     if not values:
         sheet.append_row(expected_headers)
@@ -48,7 +47,7 @@ def append_client(client_ws, name, phone):
     client_ws.append_row([date_str, name, phone])
 
 def update_client_row(client_ws, df_clients, idx, name, phone):
-    row_number = idx + 2  # header offset
+    row_number = idx + 2
     date_keep = df_clients.loc[idx, "Date"] if "Date" in df_clients.columns else ""
     client_ws.update(
         values=[[date_keep, name, phone]],
@@ -65,24 +64,12 @@ def append_vin(vin_ws, phone, vin_no):
 # ============================================================================
 try:
     client_ws, vin_ws = connect_sheets()
-except Exception as e:
-    st.error(f"❌ Could not connect to Google Sheets: {e}")
-    st.stop()
-
-# Make sure headers exist if sheets are new/empty
-try:
     ensure_headers(client_ws, CLIENT_HEADERS)
     ensure_headers(vin_ws, VIN_HEADERS)
-except Exception as e:
-    st.error(f"❌ Error ensuring headers: {e}")
-    st.stop()
-
-# Load data
-try:
     df_clients = load_df(client_ws)
     df_vins = load_df(vin_ws)
 except Exception as e:
-    st.error(f"❌ Error loading data: {e}")
+    st.error(f"❌ Error loading Google Sheets: {e}")
     st.stop()
 
 # ============================================================================
@@ -92,15 +79,16 @@ st.title("📑 Client Info")
 
 # Session state
 st.session_state.setdefault("selected_phone", "")
-st.session_state.setdefault("force_vins_tab", False)
+st.session_state.setdefault("active_tab", "➕ Add Client")
 
-tabs = st.tabs(["➕ Add Client", "✏️ Edit Client", "🚗 VINs"])
-tab_add, tab_edit, tab_vins = tabs[0], tabs[1], tabs[2]
+tab_options = ["➕ Add Client", "✏️ Edit Client", "🚗 VINs"]
+tab_index = tab_options.index(st.session_state.active_tab)
+tab_choice = st.radio("Select section", tab_options, index=tab_index)
 
 # ----------------------------------------------------------------------------
-# Add Client tab
+# Add Client
 # ----------------------------------------------------------------------------
-with tab_add:
+if tab_choice == "➕ Add Client":
     st.subheader("Add new client")
     with st.form("form_add_client"):
         client_name = st.text_input("Client Name")
@@ -114,18 +102,16 @@ with tab_add:
             try:
                 append_client(client_ws, client_name, phone)
                 st.success(f"✅ Client added: {phone}")
-                # Prepare VINs tab context
                 st.session_state.selected_phone = phone
-                st.session_state.force_vins_tab = True
+                st.session_state.active_tab = "🚗 VINs"
                 st.rerun()
-
             except Exception as e:
                 st.error(f"❌ Error adding client: {e}")
 
 # ----------------------------------------------------------------------------
-# Edit Client tab
+# Edit Client
 # ----------------------------------------------------------------------------
-with tab_edit:
+elif tab_choice == "✏️ Edit Client":
     st.subheader("Edit client")
     phone_list = sorted(df_clients["Phone"].dropna().astype(str).unique().tolist()) if not df_clients.empty else []
     selected_phone_edit = st.selectbox(
@@ -137,7 +123,7 @@ with tab_edit:
     if selected_phone_edit:
         match = df_clients[df_clients["Phone"].astype(str) == selected_phone_edit]
         if not match.empty:
-            row = match.iloc[-1]         # latest occurrence if duplicates exist
+            row = match.iloc[-1]
             idx = match.index[-1]
 
             with st.form("form_edit_client"):
@@ -152,31 +138,19 @@ with tab_edit:
                     try:
                         update_client_row(client_ws, df_clients, idx, client_name_e, phone_e)
                         st.success("✅ Client updated")
-                        # Prepare VINs tab context
                         st.session_state.selected_phone = phone_e
-                        st.session_state.force_vins_tab = True
+                        st.session_state.active_tab = "🚗 VINs"
                         st.rerun()
-
                     except Exception as e:
                         st.error(f"❌ Error updating client: {e}")
 
 # ----------------------------------------------------------------------------
-# VINs tab
+# VINs
 # ----------------------------------------------------------------------------
-with tab_vins:
+elif tab_choice == "🚗 VINs":
     st.subheader("VINs")
 
-    # Refresh clients in case we just added/edited
-    try:
-        df_clients = load_df(client_ws)
-        df_vins = load_df(vin_ws)
-    except Exception as e:
-        st.error(f"❌ Error refreshing data: {e}")
-        st.stop()
-
     phone_choices = sorted(df_clients["Phone"].dropna().astype(str).unique().tolist()) if not df_clients.empty else []
-
-    # Preselect the phone if we came from Add/Edit flow
     default_index = 0
     if st.session_state.selected_phone and st.session_state.selected_phone in phone_choices:
         default_index = phone_choices.index(st.session_state.selected_phone) + 1
@@ -190,9 +164,6 @@ with tab_vins:
 
     if selected_phone_vins:
         st.session_state.selected_phone = selected_phone_vins
-        st.session_state.force_vins_tab = False  # we've landed here
-
-        # Show existing VINs for this client
         df_client_vins = df_vins[df_vins["Phone"].astype(str) == selected_phone_vins] if not df_vins.empty else pd.DataFrame()
         st.markdown(f"**VINs for {selected_phone_vins}:**")
         if not df_client_vins.empty:
@@ -200,7 +171,6 @@ with tab_vins:
         else:
             st.info("No VINs found for this client.")
 
-        # Add VIN form
         with st.form("form_add_vin"):
             vin_new = st.text_input("Add new VIN")
             save_vin_btn = st.form_submit_button("Save VIN")
@@ -217,5 +187,3 @@ with tab_vins:
                     st.error(f"❌ Error saving VIN: {e}")
     else:
         st.info("Select a client phone to view and add VINs.")
-
-
