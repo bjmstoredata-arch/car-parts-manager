@@ -16,7 +16,7 @@ try:
         scopes=SCOPE
     )
     client = gspread.authorize(creds)
-    SHEET_NAME = "CarPartsDatabase"  # Change to your actual sheet name if needed
+    SHEET_NAME = "CarPartsDatabase"  # Change if needed
     worksheet = client.open(SHEET_NAME).sheet1
 except Exception as e:
     st.error(f"❌ Could not connect to Google Sheets: {e}")
@@ -60,8 +60,7 @@ form_defaults = {
     "body": "",
     "engine": "",
     "code": "",
-    "transmission": "",
-    "quantity": 0
+    "transmission": ""
 }
 for field, default in form_defaults.items():
     if field not in st.session_state:
@@ -79,7 +78,6 @@ with st.form("add_record_form"):
     engine = st.text_input("Engine", key="engine")
     code = st.text_input("Code", key="code")
     transmission = st.text_input("Transmission", key="transmission")
-    quantity = st.number_input("Quantity", min_value=0, step=1, key="quantity")
     submit = st.form_submit_button("Add")
 
 if submit:
@@ -87,15 +85,15 @@ if submit:
         st.error("⚠️ Client name and phone number are required.")
     else:
         try:
-            date_str = datetime.now().strftime("%d/%m/%Y")  # Auto day/month/year
+            date_str = datetime.now().strftime("%d/%m/%Y")  # Auto date
             worksheet.append_row([
                 date_str, client_name, phone, vin_no, model,
-                prod_yr, body, engine, code, transmission, quantity
+                prod_yr, body, engine, code, transmission
             ])
             st.success(f"✅ Record for '{client_name}' added successfully.")
             # Reset form fields
             for field in form_defaults.keys():
-                st.session_state[field] = "" if isinstance(form_defaults[field], str) else 0
+                st.session_state[field] = ""
             st.rerun()
         except Exception as e:
             st.error(f"❌ Error adding record: {e}")
