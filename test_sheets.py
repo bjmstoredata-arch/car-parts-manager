@@ -155,7 +155,8 @@ with tab_edit:
                         # Prepare VINs tab context
                         st.session_state.selected_phone = phone_e
                         st.session_state.force_vins_tab = True
-                        st.experimental_rerun()
+                        st.rerun()
+
                     except Exception as e:
                         st.error(f"❌ Error updating client: {e}")
 
@@ -216,4 +217,5 @@ with tab_vins:
                     st.error(f"❌ Error saving VIN: {e}")
     else:
         st.info("Select a client phone to view and add VINs.")
+
 
