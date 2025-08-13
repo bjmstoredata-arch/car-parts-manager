@@ -16,7 +16,7 @@ try:
         scopes=SCOPE
     )
     client = gspread.authorize(creds)
-    SHEET_NAME = "CarPartsDatabase"
+    SHEET_NAME = "CarPartsDatabase"  # Change to your actual sheet name if needed
     worksheet = client.open(SHEET_NAME).sheet1
 except Exception as e:
     st.error(f"❌ Could not connect to Google Sheets: {e}")
@@ -30,69 +30,72 @@ except Exception as e:
     st.error(f"❌ Error loading data: {e}")
     st.stop()
 
-st.title("🛠️ Car Parts Manager")
+# Title
+st.title("📑 Cliente Info")
 
-# --- Search Functionality (by phone number only) ---
+# --- Search by Phone ---
 st.subheader("🔍 Search by Phone Number")
 search_phone = st.text_input("Enter phone number to search")
 if search_phone:
-    if "Phone Number" in df.columns:
-        df["Phone Number"] = df["Phone Number"].astype(str).fillna("")
-        df = df[df["Phone Number"].str.contains(search_phone, case=False, na=False)]
+    if "Phone" in df.columns:
+        df["Phone"] = df["Phone"].astype(str).fillna("")
+        df = df[df["Phone"].str.contains(search_phone, case=False, na=False)]
     else:
-        st.warning("⚠️ 'Phone Number' column not found in the data.")
+        st.warning("⚠️ 'Phone' column not found in the data.")
 
-# --- Format Price Column ---
+# --- Show Table ---
 if not df.empty:
-    if "Price" in df.columns:
-        df["Price"] = pd.to_numeric(df["Price"], errors="coerce").fillna(0.0)
-        df["Price"] = df["Price"].apply(lambda x: f"${x:.2f}")
-    st.subheader("📋 Parts List")
+    st.subheader("📋 Records")
     st.dataframe(df)
 else:
-    st.info("No parts found in the database.")
+    st.info("No matching records found.")
 
-# --- Initialize session state for form fields ---
-for field, default in {
-    "part_name": "",
-    "quantity": 0,
-    "price": 0.0,
-    "phone_number": ""
-}.items():
+# --- Initialize form state ---
+form_defaults = {
+    "client_name": "",
+    "phone": "",
+    "vin_no": "",
+    "model": "",
+    "prod_yr": "",
+    "body": "",
+    "engine": "",
+    "code": "",
+    "transmission": "",
+    "quantity": 0
+}
+for field, default in form_defaults.items():
     if field not in st.session_state:
         st.session_state[field] = default
 
-# --- Add new part ---
-st.subheader("➕ Add a New Part")
-with st.form("add_part_form"):
-    part_name = st.text_input("Part Name", key="part_name")
+# --- Add a new record ---
+st.subheader("➕ Add a New Record")
+with st.form("add_record_form"):
+    client_name = st.text_input("Client Name", key="client_name")
+    phone = st.text_input("Phone", key="phone")
+    vin_no = st.text_input("Vin No", key="vin_no")
+    model = st.text_input("Model", key="model")
+    prod_yr = st.text_input("Prod. Yr", key="prod_yr")
+    body = st.text_input("Body", key="body")
+    engine = st.text_input("Engine", key="engine")
+    code = st.text_input("Code", key="code")
+    transmission = st.text_input("Transmission", key="transmission")
     quantity = st.number_input("Quantity", min_value=0, step=1, key="quantity")
-    price = st.number_input("Price", min_value=0.0, step=0.01, key="price")
-    phone_number = st.text_input("Phone Number", key="phone_number")
     submit = st.form_submit_button("Add")
 
 if submit:
-    if part_name.strip() == "":
-        st.error("⚠️ Part name is required.")
-    elif quantity <= 0 or price <= 0:
-        st.error("⚠️ Quantity and price must be greater than zero.")
-    elif phone_number.strip() == "":
-        st.error("⚠️ Phone number is required.")
+    if phone.strip() == "" or client_name.strip() == "":
+        st.error("⚠️ Client name and phone number are required.")
     else:
         try:
-            # Before: full date + time
-# timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-# After: day/month/year
-            timestamp = datetime.now().strftime("%d/%m/%Y")
-            worksheet.append_row([timestamp, part_name, quantity, price, phone_number])
-            st.success(f"✅ Part '{part_name}' added successfully.")
+            date_str = datetime.now().strftime("%d/%m/%Y")  # Auto day/month/year
+            worksheet.append_row([
+                date_str, client_name, phone, vin_no, model,
+                prod_yr, body, engine, code, transmission, quantity
+            ])
+            st.success(f"✅ Record for '{client_name}' added successfully.")
             # Reset form fields
-            st.session_state.part_name = ""
-            st.session_state.quantity = 0
-            st.session_state.price = 0.0
-            st.session_state.phone_number = ""
+            for field in form_defaults.keys():
+                st.session_state[field] = "" if isinstance(form_defaults[field], str) else 0
             st.rerun()
         except Exception as e:
-            st.error(f"❌ Error adding part: {e}")
-
+            st.error(f"❌ Error adding record: {e}")
