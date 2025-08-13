@@ -8,7 +8,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 # 🔐 Google Sheets setup using Streamlit Secrets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 json_key = json.dumps(dict(st.secrets["gcp"]))  # ✅ Convert AttrDict to dict
-creds = ServiceAccountCredentials.from_json_keyfile_name(StringIO(json_key), scope)
+creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(st.secrets["gcp"]), scope)
+
 client = gspread.authorize(creds)
 sheet = client.open("CarPartsDatabase").worksheet("VinRecords")  # ✅ Your actual sheet name
 
@@ -65,3 +66,4 @@ if "vin_saved" in st.session_state:
             )
             st.success("✅ Vehicle details saved.")
             del st.session_state["vin_saved"]
+
