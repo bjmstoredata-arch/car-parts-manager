@@ -1,13 +1,16 @@
 import streamlit as st
 import pandas as pd
 import gspread
+import json
+from io import StringIO
 from oauth2client.service_account import ServiceAccountCredentials
 
-# 🔐 Google Sheets setup
+# 🔐 Google Sheets setup using Streamlit Secrets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("steel-shine-468815-s3-f663e899ceff.json", scope)
+json_key = json.dumps(st.secrets["gcp"])
+creds = ServiceAccountCredentials.from_json_keyfile_name(StringIO(json_key), scope)
 client = gspread.authorize(creds)
-sheet = client.open("YourSheetName").worksheet("VinRecords")  # Replace with your actual sheet name
+sheet = client.open("CarPartsDatabase").worksheet("VinRecords")  # Replace with your actual sheet name
 
 # 📥 Load data from sheet
 def load_data():
@@ -62,4 +65,3 @@ if "vin_saved" in st.session_state:
             )
             st.success("✅ Vehicle details saved.")
             del st.session_state["vin_saved"]
-
