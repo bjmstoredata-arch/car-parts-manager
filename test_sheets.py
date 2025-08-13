@@ -1,69 +1,99 @@
+
 import streamlit as st
 import pandas as pd
 import gspread
-import json
-from io import StringIO
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
+from datetime import datetime
 
-# 🔐 Google Sheets setup using Streamlit Secrets
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-json_key = json.dumps(dict(st.secrets["gcp"]))  # ✅ Convert AttrDict to dict
-creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(st.secrets["gcp"]), scope)
+# --- Google Sheets Configuration ---
+SCOPE = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
 
-client = gspread.authorize(creds)
-sheet = client.open("CarPartsDatabase").worksheet("VinRecords")  # ✅ Your actual sheet name
+try:
+    creds = Credentials.from_service_account_info(
+        st.secrets["google_service_account"],
+        scopes=SCOPE
+    )
+    client = gspread.authorize(creds)
+    SHEET_NAME = "CarPartsDatabase"
+    worksheet = client.open(SHEET_NAME).sheet1
+except Exception as e:
+    st.error(f"❌ Could not connect to Google Sheets: {e}")
+    st.stop()
 
-# 📥 Load data from sheet
-def load_data():
-    data = sheet.get_all_records()
-    return pd.DataFrame(data)
+# --- Load data ---
+try:
+    data = worksheet.get_all_records()
+    df = pd.DataFrame(data)
+except Exception as e:
+    st.error(f"❌ Error loading data: {e}")
+    st.stop()
 
-# 🧾 Save VIN entry
-def save_vin(phone, vin):
-    sheet.append_row([phone, vin, pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"), "", "", "", "", "", ""])
+st.title("🛠️ Car Parts Manager")
 
-# 🔄 Update vehicle details for a given VIN
-def update_vehicle_details(vin, model, prod_yr, body, engine, code, transmission):
-    records = sheet.get_all_records()
-    for i, row in enumerate(records):
-        if row["VIN No"] == vin:
-            sheet.update_cell(i + 2, 4, model)
-            sheet.update_cell(i + 2, 5, prod_yr)
-            sheet.update_cell(i + 2, 6, body)
-            sheet.update_cell(i + 2, 7, engine)
-            sheet.update_cell(i + 2, 8, code)
-            sheet.update_cell(i + 2, 9, transmission)
-            break
+# --- Search Functionality (by phone number only) ---
+st.subheader("🔍 Search by Phone Number")
+search_phone = st.text_input("Enter phone number to search")
+if search_phone:
+    if "Phone Number" in df.columns:
+        df["Phone Number"] = df["Phone Number"].astype(str).fillna("")
+        df = df[df["Phone Number"].str.contains(search_phone, case=False, na=False)]
+    else:
+        st.warning("⚠️ 'Phone Number' column not found in the data.")
 
-# 🚀 Streamlit UI
-st.title("Client Vehicle Entry")
+# --- Format Price Column ---
+if not df.empty:
+    if "Price" in df.columns:
+        df["Price"] = pd.to_numeric(df["Price"], errors="coerce").fillna(0.0)
+        df["Price"] = df["Price"].apply(lambda x: f"${x:.2f}")
+    st.subheader("📋 Parts List")
+    st.dataframe(df)
+else:
+    st.info("No parts found in the database.")
 
-# Step 1: Save VIN
-with st.form("vin_form"):
-    phone = st.text_input("📱 Phone")
-    vin = st.text_input("🔍 VIN No")
-    submitted_vin = st.form_submit_button("Save VIN")
-    if submitted_vin and phone and vin:
-        save_vin(phone, vin)
-        st.session_state["vin_saved"] = vin
-        st.success(f"✅ VIN {vin} saved. Now enter vehicle details.")
+# --- Initialize session state for form fields ---
+for field, default in {
+    "part_name": "",
+    "quantity": 0,
+    "price": 0.0,
+    "phone_number": ""
+}.items():
+    if field not in st.session_state:
+        st.session_state[field] = default
 
-# Step 2: Add Vehicle Details
-if "vin_saved" in st.session_state:
-    with st.form("vehicle_form"):
-        st.subheader(f"🚗 Add details for VIN: {st.session_state['vin_saved']}")
-        model = st.text_input("Model")
-        prod_yr = st.text_input("Prod. Yr")
-        body = st.text_input("Body")
-        engine = st.text_input("Engine")
-        code = st.text_input("Code")
-        transmission = st.text_input("Transmission")
-        submitted_details = st.form_submit_button("Save Vehicle Details")
-        if submitted_details:
-            update_vehicle_details(
-                st.session_state["vin_saved"],
-                model, prod_yr, body, engine, code, transmission
-            )
-            st.success("✅ Vehicle details saved.")
-            del st.session_state["vin_saved"]
+# --- Add new part ---
+st.subheader("➕ Add a New Part")
+with st.form("add_part_form"):
+    part_name = st.text_input("Part Name", key="part_name")
+    quantity = st.number_input("Quantity", min_value=0, step=1, key="quantity")
+    price = st.number_input("Price", min_value=0.0, step=0.01, key="price")
+    phone_number = st.text_input("Phone Number", key="phone_number")
+    submit = st.form_submit_button("Add")
+
+if submit:
+    if part_name.strip() == "":
+        st.error("⚠️ Part name is required.")
+    elif quantity <= 0 or price <= 0:
+        st.error("⚠️ Quantity and price must be greater than zero.")
+    elif phone_number.strip() == "":
+        st.error("⚠️ Phone number is required.")
+    else:
+        try:
+            # Before: full date + time
+# timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+# After: day/month/year
+            timestamp = datetime.now().strftime("%d/%m/%Y")
+            worksheet.append_row([timestamp, part_name, quantity, price, phone_number])
+            st.success(f"✅ Part '{part_name}' added successfully.")
+            # Reset form fields
+            st.session_state.part_name = ""
+            st.session_state.quantity = 0
+            st.session_state.price = 0.0
+            st.session_state.phone_number = ""
+            st.rerun()
+        except Exception as e:
+            st.error(f"❌ Error adding part: {e}")
 
